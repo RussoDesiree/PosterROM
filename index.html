@@ -49,10 +49,16 @@
         }
         .control {
             pointer-events: auto; /* rendi cliccabile il bottone */
-            background: var(--overlay-bg);
+            
+            /* MODIFICA: Sfondo del cerchio reso trasparente */
+            background: transparent; 
+            
             border-radius: 999px;
-            width: 90px;
-            height: 90px;
+            
+            /* Dimensioni del pulsante (già ridotte in precedenza) */
+            width: 60px;
+            height: 60px;
+            
             display: flex;
             align-items: center;
             justify-content: center;
@@ -64,10 +70,15 @@
         }
         .control:hover { transform: scale(1.04); }
         .control svg {
-            width: 40px;
-            height: 40px;
+            /* Dimensioni dell'icona (già ridotte in precedenza) */
+            width: 28px;
+            height: 28px;
+            
             fill: white;
             opacity: 0.95;
+            
+            /* MODIFICA AGGIUNTIVA: Aggiungo un'ombra per far risaltare l'icona */
+            filter: drop-shadow(0 0 3px rgba(0,0,0,0.7));
         }
         .status {
             position: absolute;
@@ -99,10 +110,10 @@
         }
         .error.show { display: block; }
 
-        /* Mobile: lascia più spazio per il tocco */
+        /* Mobile: dimensioni ridotte */
         @media (max-width: 480px) {
-            .control { width: 76px; height: 76px; }
-            .control svg { width: 34px; height: 34px; }
+            .control { width: 54px; height: 54px; }
+            .control svg { width: 24px; height: 24px; }
         }
     </style>
 </head>
@@ -117,7 +128,6 @@
 
         <div class="overlay" aria-hidden="true">
             <button id="controlBtn" class="control" aria-label="Riproduci voiceover" title="Riproduci" type="button">
-                <!-- Icona Play (cambia via JS in pause) -->
                 <svg id="iconPlay" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <path d="M8 5v14l11-7z"></path>
                 </svg>
