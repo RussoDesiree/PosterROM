@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clicca per ascoltare</title>
+    <style>
+        /* Stili per centrare l'immagine e riempire lo schermo */
+        :root{
+            --overlay-bg: rgba(0,0,0,0.45);
+            --accent: #1db954;
+            --muted: rgba(255,255,255,0.75);
+        }
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+            color: white;
+        }
+        .media-wrap {
+            position: relative;
+            max-width: 100%;
+            max-height: 100vh;
+            width: min(1100px, 98vw);
+            box-shadow: 0 6px 24px rgba(0,0,0,0.6);
+        }
+        img#triggerImmagine {
+            width: 100%;
+            height: auto;
+            display: block;
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        /* Overlay con icona play / pause */
+        .overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none; /* permetti click sull'immagine sotto */
+        }
+        .control {
+            pointer-events: auto; /* rendi cliccabile il bottone */
+            background: var(--overlay-bg);
+            border-radius: 999px;
+            width: 90px;
+            height: 90px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 160ms ease, background 160ms ease;
+        }
+        .control:focus {
+            outline: 3px solid rgba(29,185,84,0.25);
+            outline-offset: 4px;
+        }
+        .control:hover { transform: scale(1.04); }
+        .control svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+            opacity: 0.95;
+        }
+        .status {
+            position: absolute;
+            left: 8px;
+            bottom: 8px;
+            background: rgba(0,0,0,0.5);
+            color: var(--muted);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            backdrop-filter: blur(4px);
+        }
+        /* Nasconde i controlli audio standard */
+        audio {
+            display: none;
+        }
+
+        /* Messaggio di errore */
+        .error {
+            position: absolute;
+            right: 8px;
+            bottom: 8px;
+            background: rgba(200,30,30,0.95);
+            color: white;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+        .error.show { display: block; }
+
+        /* Mobile: lascia più spazio per il tocco */
+        @media (max-width: 480px) {
+            .control { width: 76px; height: 76px; }
+            .control svg { width: 34px; height: 34px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="media-wrap" role="region" aria-label="Contenuto multimediale: clicca l'immagine per ascoltare il voiceover">
+        <audio id="voiceover" preload="auto">
+            <source src="voiceover.mp3" type="audio/mpeg">
+            Il tuo browser non supporta l'elemento audio.
+        </audio>
+
+        <img id="triggerImmagine" src="poster.jpg" alt="Clicca per ascoltare il voiceover" tabindex="0" />
+
+        <div class="overlay" aria-hidden="true">
+            <button id="controlBtn" class="control" aria-label="Riproduci voiceover" title="Riproduci" type="button">
+                <!-- Icona Play (cambia via JS in pause) -->
+                <svg id="iconPlay" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path d="M8 5v14l11-7z"></path>
+                </svg>
+                <svg id="iconPause" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="display:none">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div id="status" class="status" aria-live="polite">Pronto</div>
+        <div id="error" class="error" role="alert">Errore audio</div>
+    </div>
+
+    <script>
+        // Elementi principali
+        const immagine = document.getElementById('triggerImmagine');
+        const audio = document.getElementById('voiceover');
+        const btn = document.getElementById('controlBtn');
+        const iconPlay = document.getElementById('iconPlay');
+        const iconPause = document.getElementById('iconPause');
+        const status = document.getElementById('status');
+        const errorEl = document.getElementById('error');
+
+        // Stato
+        let isPlaying = false;
+        let userInteracted = false;
+
+        // Aggiorna UI in base allo stato
+        function renderState() {
+            if (isPlaying) {
+                iconPlay.style.display = 'none';
+                iconPause.style.display = '';
+                btn.setAttribute('aria-label', 'Pausa voiceover');
+                btn.title = 'Pausa';
+                status.textContent = 'Riproduzione in corso';
+            } else {
+                iconPlay.style.display = '';
+                iconPause.style.display = 'none';
+                btn.setAttribute('aria-label', 'Riproduci voiceover');
+                btn.title = 'Riproduci';
+                status.textContent = 'In pausa';
+            }
+        }
+
+        // Funzione di play/pause con gestione errori
+        async function togglePlayback() {
+            errorEl.classList.remove('show');
+            try {
+                if (!isPlaying) {
+                    // play: assicura che ci sia un'interazione dell'utente (necessaria su molti browser)
+                    userInteracted = true;
+                    await audio.play(); // può lanciare un'eccezione se bloccato
+                    isPlaying = true;
+                } else {
+                    audio.pause();
+                    isPlaying = false;
+                }
+                renderState();
+            } catch (err) {
+                console.error('Errore riproduzione audio:', err);
+                errorEl.textContent = 'Impossibile riprodurre l\'audio (controlla il file o i permessi).';
+                errorEl.classList.add('show');
+                status.textContent = 'Errore';
+            }
+        }
+
+        // Imposta eventi
+        // Click/tap sull'immagine
+        immagine.addEventListener('click', (e) => {
+            // Forniamo il click anche al bottone per comportamento coerente
+            togglePlayback();
+        });
+
+        // Click sul bottone overlay
+        btn.addEventListener('click', (e) => {
+            togglePlayback();
+        });
+
+        // Supporto per la tastiera: invio e spazio attivano l'immagine/bottone
+        immagine.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                togglePlayback();
+            }
+        });
+
+        // Aggiorna lo stato quando l'audio finisce o viene messo in pausa altrove
+        audio.addEventListener('ended', () => {
+            isPlaying = false;
+            renderState();
+        });
+        audio.addEventListener('pause', () => {
+            // solo aggiornamento UI se non è un pause interno non voluto
+            if (!audio.ended) {
+                isPlaying = false;
+                renderState();
+            }
+        });
+        audio.addEventListener('play', () => {
+            isPlaying = true;
+            renderState();
+        });
+
+        // Gestione degli errori audio (file mancante, formato non supportato, ecc.)
+        audio.addEventListener('error', (e) => {
+            console.error('audio error event', e);
+            errorEl.textContent = 'Errore caricamento audio. Verifica che "mio-voiceover.mp3" esista e sia raggiungibile.';
+            errorEl.classList.add('show');
+            status.textContent = 'Errore caricamento';
+        });
+
+        // Controllo dimensione / caricamento lento: mostra stato di buffering
+        audio.addEventListener('waiting', () => {
+            status.textContent = 'Buffering...';
+        });
+        audio.addEventListener('playing', () => {
+            status.textContent = 'Riproduzione in corso';
+        });
+
+        // Consiglio: i browser bloccano l'autoplay senza gesto utente.
+        // Qui ci assicuriamo che il primo play avvenga dopo un'interazione (click/tap/keydown).
+        renderState();
+    </script>
+</body>
+</html>

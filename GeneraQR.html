@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generatore QR Code JS</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        /* Stili per centrare e migliorare l'aspetto */
+        body { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            flex-direction: column;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        #container {
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            text-align: center;
+        }
+        /* Nasconde l'immagine generata di default, useremo solo il canvas */
+        #qrcode img {
+            display: none;
+        }
+        #downloadBtn {
+            margin-top: 20px;
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            transition: background-color 0.2s ease;
+        }
+        #downloadBtn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="container">
+        <h3>Il mio QR Code</h3>
+        <div id="qrcode"></div>
+    </div>
+
+    <button id="downloadBtn">Scarica PNG Trasparente</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <script type="text/javascript">
+        // Definiamo le opzioni per trovarle più facilmente
+        var qrCodeText = "https://www.https://russodesiree.github.io/PosterROM/";
+        var qrCodeSize = 200;
+        var qrCodeColor = "#000000";
+        var qrCodeBackground = "#FFFFFF"; // Sfondo bianco (lo renderemo trasparente dopo)
+
+        // 2. Genera il QR Code (ancora con sfondo bianco)
+        new QRCode(document.getElementById("qrcode"), {
+            text: qrCodeText,
+            width: qrCodeSize,
+            height: qrCodeSize,
+            colorDark : qrCodeColor,
+            colorLight : qrCodeBackground, 
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
+        // 3. Aggiungi l'evento al pulsante di download
+        document.getElementById("downloadBtn").addEventListener("click", function() {
+            
+            // 4. Trova il canvas originale generato dalla libreria
+            // (La libreria genera sia un <canvas> che un <img>, noi prendiamo il canvas)
+            var originalCanvas = document.getElementById("qrcode").querySelector("canvas");
+
+            if (originalCanvas) {
+                // 5. Crea un nuovo canvas "invisibile" in memoria
+                var tempCanvas = document.createElement("canvas");
+                tempCanvas.width = qrCodeSize;
+                tempCanvas.height = qrCodeSize;
+                var ctx = tempCanvas.getContext("2d");
+
+                // 6. Prendi i dati dei pixel dal canvas originale
+                var originalCtx = originalCanvas.getContext("2d");
+                var imageData = originalCtx.getImageData(0, 0, qrCodeSize, qrCodeSize);
+                var data = imageData.data;
+
+                // 7. Cicla su tutti i pixel (4 valori alla volta: R, G, B, Alpha)
+                for (var i = 0; i < data.length; i += 4) {
+                    var r = data[i];
+                    var g = data[i + 1];
+                    var b = data[i + 2];
+                    
+                    // Controlla se il pixel è bianco (o quasi bianco)
+                    if (r > 250 && g > 250 && b > 250) { 
+                        // Imposta l'alpha (trasparenza) a 0
+                        data[i + 3] = 0; 
+                    }
+                }
+
+                // 8. Metti i dati modificati (con trasparenza) nel nuovo canvas
+                ctx.putImageData(imageData, 0, 0);
+
+                // 9. Crea il link per il download del nuovo canvas
+                var dataURL = tempCanvas.toDataURL("image/png"); // Converti in PNG
+                var downloadLink = document.createElement("a");
+                downloadLink.href = dataURL;
+                downloadLink.download = "qrcode_trasparente.png";
+
+                // 10. Simula il click sul link per scaricare il file
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+
+            } else {
+                alert("Errore: Impossibile trovare il canvas del QR code.");
+            }
+        });
+    </script>
+
+</body>
+</html>
